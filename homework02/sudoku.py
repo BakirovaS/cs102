@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+import time
+import random
+
 def read_sudoku(filename):
     """ Прочитать Судоку из указанного файла """
     digits = [c for c in open(filename).read() if c in '123456789.']
@@ -24,7 +28,7 @@ def group(values, n):
     >>> group([1,2,3,4,5,6,7,8,9], 3)
     [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
     """
-    pass
+    return [values[n * i : n * i + n] for i in range(n)]
 
 
 def get_row(values, pos):
@@ -36,7 +40,8 @@ def get_row(values, pos):
     >>> get_row([['1', '2', '3'], ['4', '5', '6'], ['.', '8', '9']], (2, 0))
     ['.', '8', '9']
     """
-    pass
+    row, col = pos
+    return values[row]
 
 
 def get_col(values, pos):
@@ -48,7 +53,9 @@ def get_col(values, pos):
     >>> get_col([['1', '2', '3'], ['4', '5', '6'], ['.', '8', '9']], (0, 2))
     ['3', '6', '9']
     """
-    pass
+
+    row, col = pos
+    return [values[i][col] for i in range(len(values))]
 
 
 def get_block(values, pos):
@@ -61,7 +68,14 @@ def get_block(values, pos):
     >>> get_block(grid, (8, 8))
     ['2', '8', '.', '.', '.', '5', '.', '7', '9']
     """
-    pass
+    raw, col = pos
+    block = []
+
+    for i in range(raw - raw % 3, raw - raw % 3 + 3):
+        for j in range(col - col % 3, col - col % 3 + 3):
+            block.append(values[i][j])
+
+    return block
 
 
 def find_empty_positions(grid):
@@ -73,7 +87,12 @@ def find_empty_positions(grid):
     >>> find_empty_positions([['1', '2', '3'], ['4', '5', '6'], ['.', '8', '9']])
     (2, 0)
     """
-    pass
+    for i in range(len(grid)):
+        for j in range(len(grid)):
+            if grid[i][j] == ".":
+                return (i, j)
+
+    return None
 
 
 def find_possible_values(grid, pos):
@@ -86,8 +105,7 @@ def find_possible_values(grid, pos):
     >>> values == {'2', '5', '9'}
     True
     """
-    pass
-
+    return set('123456789').difference(set(get_row(grid, pos)), set(get_col(grid, pos)), set(get_block(grid, pos)))
 
 def solve(grid):
     """ Решение пазла, заданного в grid """
@@ -101,13 +119,45 @@ def solve(grid):
     >>> solve(grid)
     [['5', '3', '4', '6', '7', '8', '9', '1', '2'], ['6', '7', '2', '1', '9', '5', '3', '4', '8'], ['1', '9', '8', '3', '4', '2', '5', '6', '7'], ['8', '5', '9', '7', '6', '1', '4', '2', '3'], ['4', '2', '6', '8', '5', '3', '7', '9', '1'], ['7', '1', '3', '9', '2', '4', '8', '5', '6'], ['9', '6', '1', '5', '3', '7', '2', '8', '4'], ['2', '8', '7', '4', '1', '9', '6', '3', '5'], ['3', '4', '5', '2', '8', '6', '1', '7', '9']]
     """
-    pass
+    
+    empty_position = find_empty_positions(grid)
 
+    if not empty_position:
+        return grid
+
+    possible_values = find_possible_values(grid, empty_position)
+
+    row, col = empty_position
+    for i in possible_values:
+        grid[row][col] = i
+        solution = solve(grid)
+        if solution:
+            return solution
+
+    grid[row][col] = '.'
+    return None
 
 def check_solution(solution):
     """ Если решение solution верно, то вернуть True, в противном случае False """
     # TODO: Add doctests with bad puzzles
-    pass
+
+    for i in range(len(solution)):
+         row = set(get_row(solution, (i, 0)))
+         if row != set('123456789'):
+            return False
+
+    for j in range(len(solution)):
+         col = set(get_col(solution, (0, 1)))
+         if col != set('123456789'):
+            return False
+
+    for i in (0, 3, 6):
+        for j in (0, 3, 6):
+            block = set(get_block(solution, (i, j)))
+            if block != set('123456789'):
+                return False
+
+    return True
 
 
 def generate_sudoku(N):
@@ -131,7 +181,24 @@ def generate_sudoku(N):
     >>> check_solution(solution)
     True
     """
-    pass
+    N = 81 - min(81, max(N, 0))
+    grid = []
+    for i in range(9):
+        cur_row = []
+        for j in range(9):
+            cur_row.append('.')
+        grid.append(cur_row)
+
+    grid = solve(grid)
+    
+    while N:
+        row = random.randint(0, 8)
+        col = random.randint(0, 8)
+        if grid[row][col] != '.':
+            grid[row][col] = '.'
+            N -= 1
+    
+    return grid
 
 
 if __name__ == '__main__':
@@ -139,4 +206,5 @@ if __name__ == '__main__':
         grid = read_sudoku(fname)
         display(grid)
         solution = solve(grid)
-        display(solution)
+        display(solution) 
+ 
